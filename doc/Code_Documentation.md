@@ -17,7 +17,8 @@ Numerically calculate the reactor behaviour during the event and determine the u
 - ΔT<sub>max</sub>
 
 **Results are presented as follows:**
-
+- Report time curves of the power, multiplication factor, void and fuel temperature for nominal solution
+- 
 - A table showing the percentage changes in P<sub>max</sub> and ΔT<sub>max</sub> for each parameter, ranked from largest to smallest impact.
 
 - The total uncertainty is calculated by combining the contributions from all five parameters using the root sum of squares:
@@ -35,11 +36,38 @@ Numerically calculate the reactor behaviour during the event and determine the u
 
   
 ## Equations
+ In the section below relevant eauations ofr solving power, multiplication factor, void and fuel temperature will be provided.
+
+ **Power equation**
+
+$$\frac{dP}{dt} = \frac{k-1}{\ell}\,P$$
+
+source https://www.nuclear-power.com/nuclear-power/reactor-physics/reactor-dynamics/reactor-kinetics/
+
+**Multiplication factor equation**
+
 Given that `k = k(α, T)`, the chain rule gives:
 
-Given that \(k = k(\alpha, T_f)\), the chain rule gives:
+$$
+\frac{dk}{dt} =\frac{\partial k}{\partial \alpha}\frac{d\alpha}{dt}+\frac{\partial k}{\partial T}\frac{dT}{dt}$$
+
+**Fuel Temperature equation**
+
+For the simplified model, fuel cooling and void effects are neglected. All generated thermal power is assumed to contribute to increasing the fuel temperature.
+
+The energy balance is:
+
+$$
+\text{Energy in} = \text{Energy accumulation}
+$$
+
+The resulting differential equation is:
+
+$$\frac{dT_f}{dt}=\frac{P(t)}{\rho_{UO_2} A_f c_p}$$
 
 
+
+source https://www.nuclear-power.com/nuclear-power/reactor-physics/reactor-dynamics/reactor-kinetics/
 ## Input Data and Assumptions
 
 | Parameter | Value | Unit |
