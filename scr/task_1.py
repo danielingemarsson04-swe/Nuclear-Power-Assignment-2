@@ -134,7 +134,20 @@ def plot_power(time, power):
     plt.show()
     return fig, ax
 
+
+
+
+#Printing results for task 1
 time, power, temperature, k = simulate()
+P_max = np.max(power)
+delta_T_max = np.max(temperature) - T_fuel_start
+
+
+
+print("P_max =", P_max) #Maixiammly achived power
+print("Delta T_max =", delta_T_max) #Maixiammly achived temperature difference
+print("Temperature minimum:", np.min(temperature))
+print("Temperature maximum:", np.max(temperature))
 
 plot_power(time, power)
 plot_fuel_temperature(time, temperature)
