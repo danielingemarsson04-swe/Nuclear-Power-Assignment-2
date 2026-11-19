@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
 
 # Input parameters, assumptions
 
@@ -69,6 +70,36 @@ def calculate_power(rho_eff, neutron_lifetime, P_initial=P_0):
     return P_initial * np.exp(rho_fraction * sim_time / neutron_lifetime)
 
 
+
+
+#Simulation of the model
+def simulate(rho=rho_0, lifetime=neutron_lifetime,
+             alpha_temperature=alpha_fuel):
+    def equations(t, y):
+        power, temperature = y
+        rho_eff = (rho + alpha_temperature * (temperature - T_fuel_start)) * 1e-5
+        return [rho_eff * power / lifetime, dT_dt(power)]
+
+    solution = solve_ivp(
+        equations,
+        (0, sim_time),
+        (P_0, T_fuel_start),
+        t_eval=np.linspace(0, sim_time, 1001) )
+
+
+
+
+                 
+    time = solution.t
+    power, temperature = solution.y
+    k = 1 + (rho + alpha_temperature * (temperature - T_fuel_start)) * 1e-5
+    return time, power, temperature, k
+
+
+
+
+
+
 parameters = [ ("Reactivity", rho_0, uncertainty_rho),
     ("Neutron lifetime", neutron_lifetime, uncertainty_lifetime),
     ("Fuel temperature coefficient", alpha_fuel, uncertainty_alpha_fuel),
@@ -102,3 +133,8 @@ def plot_power(time, power):
     ax.grid(True)
     plt.show()
     return fig, ax
+
+time, power, temperature, k = simulate()
+
+plot_power(time, power)
+plot_fuel_temperature(time, temperature)
