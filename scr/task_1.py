@@ -51,17 +51,22 @@ def heat_transfer_coefficient(void):
     return U_w * (1 - void)
 
 
-# Fuel-temperature rate of change (K/s or °C/s).
-# P is linear power in W/cm; the heat-loss term is also in W/cm.
-def dT_dt(power, fuel_temperature, void):
-    fuel_area = np.pi * fuel_rod_diameter**2 / 4  # cm^2
-    heat_loss_per_length = heat_transfer_coefficient(void) * (fuel_temperature - T_cladding)
+
+
+#Temperature dependence over time
+def dT_dt(power):
+    fuel_area = np.pi * fuel_rod_diameter**2 / 4
     heat_capacity_per_length = rho_UO2 * fuel_area * cp_UO2
-    return (power - heat_loss_per_length) / heat_capacity_per_length
+    return power / heat_capacity_per_length
 
 
-U_initial = heat_transfer_coefficient(void_start)
+U_initial = U_w * (1 - void_start)
 
+
+#Caluclates Power
+def calculate_power(rho_eff, neutron_lifetime, P_initial=P_0):
+    rho_fraction = rho_eff * 1e-5  # Konvertera pcm till absolut reaktivitet
+    return P_initial * np.exp(rho_fraction * sim_time / neutron_lifetime)
 
 
 parameters = [ ("Reactivity", rho_0, uncertainty_rho),
@@ -76,4 +81,24 @@ for name, value, uncertainty in parameters:
     sigma = abs(value) * uncertainty
     print(f"{name:<32}{value - 1.645*sigma:>12.4g}{value + 1.645*sigma:>12.4g}")
 
+#Plot of Fuel Temperature with respect to time
+def plot_fuel_temperature(time, fuel_temperature):
+    fig, ax = plt.subplots()
+    ax.plot(time, fuel_temperature)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Fuel temperature (°C)")
+    ax.set_title("Fuel temperature over time")
+    ax.grid(True)
+    plt.show()
+    return fig, ax
 
+#Plot of Power with respect to time
+def plot_power(time, power):
+    fig, ax = plt.subplots()
+    ax.plot(time, power)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Linear power (W/cm)")
+    ax.set_title("Power over time")
+    ax.grid(True)
+    plt.show()
+    return fig, ax
