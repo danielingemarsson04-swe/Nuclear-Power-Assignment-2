@@ -22,7 +22,22 @@ Numerically calculate the reactor behaviour during the event and determine the u
 
 - The total uncertainty is calculated by combining the contributions from all five parameters using the root sum of squares:
 
-  δ<sub>total</sub> = √(δ<sub>1</sub>² + δ<sub>2</sub>² + δ<sub>3</sub>² + δ<sub>4</sub>² + δ<sub>5</sub>²)
+  $$
+  \delta_{\text{total}} =
+  \sqrt{
+  \delta_1^2 +
+  \delta_2^2 +
+  \delta_3^2 +
+  \delta_4^2 +
+  \delta_5^2
+  }
+  $$
+
+  
+## Equations
+Given that `k = k(α, T)`, the chain rule gives:
+
+Given that \(k = k(\alpha, T_f)\), the chain rule gives:
 
 
 ## Input Data and Assumptions
