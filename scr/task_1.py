@@ -50,6 +50,16 @@ N_samples = 500
 def heat_transfer_coefficient(void):
     return U_w * (1 - void)
 
+
+# Fuel-temperature rate of change (K/s or °C/s).
+# P is linear power in W/cm; the heat-loss term is also in W/cm.
+def dT_dt(power, fuel_temperature, void):
+    fuel_area = np.pi * fuel_rod_diameter**2 / 4  # cm^2
+    heat_loss_per_length = heat_transfer_coefficient(void) * (fuel_temperature - T_cladding)
+    heat_capacity_per_length = rho_UO2 * fuel_area * cp_UO2
+    return (power - heat_loss_per_length) / heat_capacity_per_length
+
+
 U_initial = heat_transfer_coefficient(void_start)
 
 
@@ -65,4 +75,5 @@ print(f"{'Parameter':<32}{'Lower':>12}{'Upper':>12}")
 for name, value, uncertainty in parameters:
     sigma = abs(value) * uncertainty
     print(f"{name:<32}{value - 1.645*sigma:>12.4g}{value + 1.645*sigma:>12.4g}")
+
 
