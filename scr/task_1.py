@@ -1,211 +1,186 @@
-# This python file contains useful functions and data for Task 1.
 
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.integrate import solve_ivp
 
-# Initial conditions
-void_start = 0.25               # Start void fraction
-T_fuel_start = 1000             # Start fuel temperature (Celsius)
-T_cladding = T_fuel_start - 700 # Cladding surface temperature (Celsius)
-
-# Fuel
-rho_UO2 = 10.5                  # UO2 density (g/cm^3)
-fuel_rod_diameter = 1.0         # Fuel rod diameter (cm)
-cp_UO2 = 0.4                    # Specific heat capacity (kJ/(kg*K))
-
-# Reactor conditions
-pressure = 70                   # Reactor pressure (bar)
-V_mod_V_fuel = 2.8              # Moderator-to-fuel volume ratio (-)
-sim_time = 1.0                  # Sufficient simulation time: first second
-
-# Thermal-hydraulic properties
-P_0 = 150                       # Initial linear power (W/cm)
-U_w = 14.3                      # Heat transfer coefficient without steam (W/(cm*K))
-
-# Reactivity parameters
-rho_0 = 2000                    # Initial excess reactivity (pcm)
-k_prompt = 1.02                 # Prompt multiplication factor (-)
-alpha_void = -100               # Void reactivity coefficient (pcm/% void)
-alpha_fuel = -4                 # Fuel temperature coefficient (pcm/K)
-
-# Neutron kinetics
-neutron_lifetime = 1.0e-4       # Prompt neutron lifetime (s)
-
-# Uncertainty parameters (1 sigma)
-uncertainty_rho = 0.15
-uncertainty_lifetime = 0.15
-uncertainty_alpha_fuel = 0.15
-uncertainty_alpha_void = 0.20
-uncertainty_U_w = 0.25
-
-N_samples = 500
+nominal_values = {
+    "rho": 2000.0, "lifetime": 1.0e-4, "alpha_fuel": -4.0,
+    "alpha_void": -100.0, "u_w": 14.3,}
 
 
-def heat_transfer_coefficient(void_fraction):
-    """Return the void-dependent heat transfer coefficient."""
-    return U_w * (1 - void_fraction)
-
-#Function that Temp change with respect to time
-def dT_dt(power):
-    """Return the fuel temperature rate of change."""
-    fuel_area = np.pi * fuel_rod_diameter**2 / 4
-    heat_capacity_per_length = rho_UO2 * fuel_area * cp_UO2
-    return power / heat_capacity_per_length
+uncertainty = {
+    "rho": 0.15, "lifetime": 0.15, "alpha_fuel": 0.15,
+    "alpha_void": 0.20, "u_w": 0.25,}
 
 
 
-#Function that calculates power
-def calculate_power(rho_eff, lifetime, P_initial=P_0):
-    """Return an analytical single-step power estimate."""
-    rho_fraction = rho_eff * 1e-5
-    return P_initial * np.exp(rho_fraction * sim_time / lifetime)
+#Default values for the initial conditions
+p0 = 150.0
+t_fuel0 = 1000.0
+void0 = 0.25
+
+t_cladding = 300.0
+t_saturation = 285.0
+
+v_mod_v_fuel = 2.8
+rho_steam = 36.0
+h_fg = 1500.0e3
+duration = 1.0
 
 
 
 
-def simulate(rho=rho_0, lifetime=neutron_lifetime, alpha_temperature=alpha_fuel):
-    def equations(t, y):
-        power_value, temperature_value = y
-        rho_eff = (rho + alpha_temperature * (temperature_value - T_fuel_start)) * 1e-5
+# Calculates the heat capacity for one cm of fuel rod
+def heat_capacity():
+    area = np.pi * 1.0**2 / 4.0
+    kg_per_cm = 10.5 * area / 1000.0
+    return kg_per_cm * 0.4 * 1000.0
 
-        d_power_dt = rho_eff * power_value / lifetime
-        d_temperature_dt = dT_dt(power_value)
-        return [d_power_dt, d_temperature_dt]
+
+def simulate(parameters=None, full_model=True, times=None):
+    # Use the nominal values unless other values are given
+    if parameters is None:
+        parameters = nominal_values
+    if times is None:
+        times = np.linspace(0.0, duration, 501)
+
+    capacity = heat_capacity()
+    p_cooling = p0
+
+    def equations(_time, state):
+        power = state[0]
+        fuel_temperature = state[1]
+
+        # The basic model assumes void is constant
+        if full_model:
+            void = float(np.clip(state[2], 0.0, 1.0))
+            rho_void = parameters["alpha_void"] * (
+                void * 100.0 - void0 * 100.0
+            )
+        else:
+            void = void0
+            rho_void = 0.0
+
+        rho_total = (
+            parameters["rho"]
+            + rho_void
+            + parameters["alpha_fuel"] * (fuel_temperature - t_fuel0)
+        )
+        # Convert reactivity from pcm to a fraction type
+        k_value = 1.0 + rho_total * 1.0e-5
+        dpdt = (k_value - 1.0) * power / parameters["lifetime"]
+
+        if not full_model:
+            dtdt = power / capacity
+            return [dpdt, dtdt]
+
+        u_void = parameters["u_w"] * (1.0 - void)
+        p_heat = u_void * (t_cladding - t_saturation)
+        dtdt = (power - p_heat) / capacity
+        vapor_mass_cm3 = rho_steam * v_mod_v_fuel
+        dh_dt = (p_heat - p_cooling) / (vapor_mass_cm3 * h_fg)
+        d_void_dt = dh_dt / 1.0
+        d_void_dt = float(np.clip(d_void_dt, -1.0, 1.0))
+        return [dpdt, dtdt, d_void_dt]
+
+    initial = [p0, t_fuel0, void0] if full_model else [p0, t_fuel0]
+    solution = solve_ivp(
+        equations,
+        (0.0, duration),
+        initial,
+        t_eval=times,
+        rtol=1.0e-7,
+        atol=1.0e-9,
+        max_step=0.002,
+    )
+    if not solution.success:
+        raise RuntimeError(solution.message)
+
+    # Calculate k for every time step
+    power = solution.y[0]
+    fuel_temperature = solution.y[1]
+    void = solution.y[2] if full_model else np.full_like(power, void0)
+
+    rho_void = np.zeros_like(power)
+    if full_model:
+        rho_void = parameters["alpha_void"] * (
+            void * 100.0 - void0 * 100.0
+        )
+    rho_total = (
+        parameters["rho"] + rho_void + parameters["alpha_fuel"] * (fuel_temperature - t_fuel0))
+
+    
+    k_value = 1.0 + rho_total * 1.0e-5
+    return solution.t, power, fuel_temperature, k_value, void
+
+
+def peak_values(parameters=None, full_model=True):
+    _time, power, temperature, _k, _void = simulate(parameters, full_model)
+    return float(np.max(power)), float(np.max(temperature) - t_fuel0)
+
+
+def task1(full_model=True):
+    # Change one parameter at a time
+    nominal_p, nominal_dt = peak_values(full_model=full_model)
+    names = [   ("rho", "Excess reactivity"), ("lifetime", "Prompt neutron lifetime"), ("alpha_fuel", "Fuel temperature coefficient"),
+        ("alpha_void", "Void coefficient"),
+        ("u_w", "Heat transfer coefficient"),]
 
 
 
     
-    solution = solve_ivp( equations, (0, sim_time), (P_0, T_fuel_start), t_eval=np.linspace(0, sim_time, 1001),)
+    if not full_model:
+        names = names[:3]
 
-    time_values = solution.t
-    power_values, temperature_values = solution.y
+    rows = []
+    for key, name in names:
+        low_value = nominal_values[key] * (1.0 - uncertainty[key])
+        high_value = nominal_values[key] * (1.0 + uncertainty[key])
 
-    k_values = 1 + (rho + alpha_temperature * (temperature_values - T_fuel_start)) * 1e-5
+        low = nominal_values.copy()
+        high = nominal_values.copy()
+        low[key] = low_value
+        high[key] = high_value
 
-    return time_values, power_values, temperature_values, k_values
-
-
-parameters = [("Reactivity", rho_0, uncertainty_rho), ("Neutron lifetime", neutron_lifetime, uncertainty_lifetime),
-    ("Fuel temperature coefficient", alpha_fuel, uncertainty_alpha_fuel),
-    ("Void coefficient", alpha_void, uncertainty_alpha_void),
-    ("Heat transfer coefficient", U_w, uncertainty_U_w),]
-
-#Prints upper and lower boundary values for the input parameters (Mostly to confirm values)
-def print_parameter_bounds():
-    print(f"{'Parameter':<32}{'Lower':>12}{'Upper':>12}")
-
-    for name, value, uncertainty in parameters:
-        sigma = abs(value) * uncertainty
-        lower = value - 1.645 * sigma
-        upper = value + 1.645 * sigma
-        
-        print(f"{name:<32}{lower:>12.4g}{upper:>12.4g}")
-
-
-
-#Plot fueltemp to time
-def plot_fuel_temperature(time_values, fuel_temperature):
-    fig, ax = plt.subplots()
-    ax.plot(time_values, fuel_temperature)
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Fuel temperature (°C)")
-    ax.set_title("Fuel temperature over time")
-    ax.grid(True)
-    
-    return fig, ax
-
-#Plot power to time
-def plot_power(time_values, power_values):
-    fig, ax = plt.subplots()
-    ax.plot(time_values, power_values)
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Linear power (W/cm)")
-    ax.set_title("Power over time")
-    ax.grid(True)
-    
-    return fig, ax
-
-
-
-#Function for Pmax and Delta T max
-def Pmax_DeltaTmax(rho=rho_0, lifetime=neutron_lifetime,alpha_temperature=alpha_fuel):
-
-    _, power, temperature, _ = simulate(rho, lifetime, alpha_temperature) 
-    P_max = np.max(power)
-    delta_T_max = np.max(temperature) - T_fuel_start
-    
-    return P_max, delta_T_max
+        p_low, dt_low = peak_values(low, full_model)
+        p_high, dt_high = peak_values(high, full_model)
+        p_low_change = 100.0 * (p_low - nominal_p) / nominal_p
+        p_high_change = 100.0 * (p_high - nominal_p) / nominal_p
+        dt_low_change = 100.0 * (dt_low - nominal_dt) / nominal_dt
+        dt_high_change = 100.0 * (dt_high - nominal_dt) / nominal_dt
 
 
 
 
-#Sensitivity part for task 1
-def task1_sensitivity():
-    nominal_P, nominal_T = get_output() #Base scenario for task 1 ("nominal")
-
-    cases = [("Reactivity", "rho", rho_0, uncertainty_rho), ("Neutron lifetime", "lifetime", neutron_lifetime, uncertainty_lifetime),("Fuel temperature coefficient", "alpha_temperature", alpha_fuel,uncertainty_alpha_fuel),]
-
-    results = [] #Making Result list
-
-    for name, argument, value, uncertainty in cases: #for loop
-        high = value * (1 + uncertainty)
-        low = value * (1 - uncertainty)
-
-        P_high, T_high = get_output(**{argument: high})
-        P_low, T_low = get_output(**{argument: low})
-
-        P_changes = [100 * (P_high - nominal_P) / nominal_P, 100 * (P_low - nominal_P) / nominal_P, ] #List of power change
-        T_changes = [ 100 * (T_high - nominal_T) / nominal_T, 100 * (T_low - nominal_T) / nominal_T,] #List of temperature change
-
-        P_effect = sum(abs(change) for change in P_changes) / 2
-        T_effect = sum(abs(change) for change in T_changes) / 2
-
-        #Appending all the results to list with changes
-        results.append({ "name": name, "P changes": P_changes, "T changes": T_changes, "P effect": P_effect, "T effect": T_effect,})
-
-    print(f"Nominal P_max:       {nominal_P})
-    print(f"Nominal Delta T_max: {nominal_T})
-
-    print(f"{'Parameter':<34}{'P_max (+/-)':<24}{'Delta T_max (+/-)':<24}")
-
-    for result in results:
-        p_up, p_down = result["P_changes"]
-        t_up, t_down = result["T_changes"]
-
-        print( f"{result['name']:<34}" f"{p_up:>8}% / {p_down:>8}% f"{t_up:>8}% / {t_down:>8}%")
-
-    P_total = np.sqrt(sum(result["P_effect"]**2 for result in results))
-    T_total = np.sqrt(sum(result["T_effect"]**2 for result in results))
-
-    print("\nRanking by effect on P_max:")
-    for rank, result in enumerate(sorted(results, key=lambda row: row["P_effect"], reverse=True), start=1,): #Sorted
-        print(f"{rank}. {result['name']} ({result['P_effect']:.2f}%)")
-
-    print("\nRanking by effect on Delta T MaX:")
-    for rank, result in enumerate(sorted(results, key=lambda row: row["T_effect"], reverse=True), start=1,): #Sorted
-        
-        print(f"{rank}. {result['name']} ({result['T_effect']}%)")
-
-    print(f"\nCombined uncertainty for P_max:       {P_total}%")
-    print(f"Combined uncertainty for Delta T_max: {T_total}%")
+        rows.append({
 
 
+            "name": name, "p_low": p_low_change, "p_high": p_high_change,
+            "dt_low": dt_low_change, "dt_high": dt_high_change,
+            "p_effect": np.mean([abs(p_low_change), abs(p_high_change)]),
+            "dt_effect": np.mean([abs(dt_low_change), abs(dt_high_change)]),})
 
-# Keep module execution separate from library imports.
-if __name__ == "__main__":
-    print_parameter_bounds()
+    p_total = np.sqrt(sum(row["p_effect"] ** 2 for row in rows))
+    dt_total = np.sqrt(sum(row["dt_effect"] ** 2 for row in rows))
+    # Combine the parameter effects using root sum of squares
+    return nominal_p, nominal_dt, rows, float(p_total), float(dt_total)
 
-    time_values, power_values, temperature_values, k_values = simulate() #Gets values from simulate function
 
-    P_max = np.max(power_values)
-    delta_T_max = np.max(temperature_values) - T_fuel_start
+def plot_nominal(full_model=True):
+    time, power, temperature, k_value, void = simulate(full_model=full_model)
+    plots = [
+        ("Power", power, "Linear power (W/cm)"), ("Multiplication factor", k_value, "k"),
+        ("Fuel temperature", temperature, "Temperature (C)")
+    ]
+    if full_model:
+        plots.insert(2, ("Void", void * 100.0, "Void (%)"))
 
-    print("P_max =", P_max)
-    print("Delta T_max =", delta_T_max)
-    print("Temperature minimum:", np.min(temperature_values))
-    print("Temperature maximum:", np.max(temperature_values))
-
-    plot_power(time_values, power_values)
-    plot_fuel_temperature(time_values, temperature_values)
-    plt.show()
+    figures = []
+    for title, values, ylabel in plots:
+        fig, ax = plt.subplots()
+        ax.plot(time, values)
+        ax.set(title=f"{title} vs time", xlabel="Time (s)", ylabel=ylabel)
+        ax.grid(True)
+        figures.append(fig)
+    return figures
