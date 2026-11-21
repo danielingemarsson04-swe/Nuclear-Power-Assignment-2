@@ -1,75 +1,24 @@
-## Repository overview
+# Commit list
 
-- **Repository:** [danielingemarsson04-swe/Nuclear-Power-Assignment-2](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2)
-- **Description:** Simulation of a BWR reactor with scenario and reactor parameters analysis
-- **Primary language:** Python (100%)
-
-## Improvements
-
-The following improvements are proposed for the BWR reactor simulation repository.
-
-- Improve the structure of the Python source code and documentation.
-- Make it easier to reproduce sensitivity and uncertainty analyses.
-- Add clearer input validation and handling for reactor parameters.
-- Present simulation results consistently, for example through time curves and ranked impact tables.
-- Improve the setup instructions and dependency management.
-- Separate nominal, sensitivity, and Monte Carlo calculations where appropriate.
-- Expand automated checks for reactor parameter ranges and generated output files.
-- Improve naming and consistency in source files and documentation.
-
-## Analysis goals
-
-The repository can be extended to better support:
-
-- Nominal BWR reactor simulations.
-- Sensitivity analyses for one parameter at a time.
-- Quantitative ranking of parameter impacts.
-- Monte Carlo analyses based on parameter uncertainties.
-- Clear reporting of power, multiplication factor, void fraction, and fuel temperature.
-
-## Recommended repository structure
-
-- `doc/` – Documentation and dependencies.
-- `scr/` – Python source code.
-- `data/` – Generated Monte Carlo and sensitivity results.
-- `figures/` – Time curves, histograms, and bar charts.
-- `report/` – Report with source code in the appendix.
-
-## Input quality improvements
-
-- Validate that reactor parameters are within physically reasonable ranges.
-- Document units for every input and output parameter.
-- Check dependencies before starting a simulation.
-- Provide clear warnings for invalid or inconsistent parameters.
-- Include a configuration file for nominal values and uncertainty distributions.
-
-## Result quality improvements
-
-- Compare nominal and sensitivity results in one table.
-- Rank percentage changes in maximum power and maximum fuel temperature from largest to smallest impact.
-- Include uncertainty ranges for the maximum power and maximum fuel temperature.
-- Export numerical results in a consistent format, such as CSV.
-- Save figures with descriptive filenames and documented units.
-
-## Suggested future tasks
-
-- Add automated unit tests for core reactor calculations.
-- Add a command-line interface with configurable input data.
-- Add a complete Monte Carlo workflow with a reproducible random seed.
-- Add more detailed assumptions and model limitations.
-- Include example runs and expected output in the documentation.
-
-## Total uncertainty
-
-The total uncertainty can be calculated by combining parameter contributions using the root sum of squares:
-
-$$
-\delta_{\text{total}} =
-\sqrt{
-\delta_1^2 +
-\delta_2^2 +
-\delta_3^2 +
-\delta_4^2 +
-\delta_5^2
-}
-$$
+| Datum | Commit | Vad den åstadkom |
+|---|---|---|
+| 2 nov 2026 | [`0cfeea5`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/0cfeea594816afaca2fc878524c541cea2413d49) | Flyttade README-dokumentationen till mappen `doc/`. |
+| 2 nov 2026 | [`da0889a`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/da0889afb30e3f3a89a0d5753f4dd527d36fe3c7) | Tog bort den gamla `Code_Documentation.md` från rotmappen. |
+| 2 nov 2026 | [`0d7c51d`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/0d7c51de97b95e87d196b804c9e2f970e9c090ea) | Skapade `scr/main.py`, till en början tom. |
+| 2 nov 2026 | [`7ae5816`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/7ae581628fa6634868352a8e625e5629840f57ee) | Skapade `scr/task_1.py`, till en början tom. |
+| 18 nov 2026 | [`62d4065`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/62d4065e0a359955ee5f89abe7eca9f4e719be7b) | Lade till grundläggande parametrar, osäkerhetsvärden och funktioner för uppgift 1. |
+| 18 nov 2026 | [`16b2a9e`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/16b2a9e02a6f1dafa5b0909cb6b11447df4ad556) | Byggde ut dokumentationen med problemformulering, mål, uppgiftsbeskrivning och indata. |
+| 19 nov 2026 | [`157f72d`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/157f72d123d913eac3b84b4b57e03955c072da67) | Förtydligade matematiska uttryck för total osäkerhet och kedjeregeln i dokumentationen. |
+| 19 nov 2026 | [`3448b0e`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/3448b0e2630f8a2cdd782ca621bcea1f7c6c6be3) | Lade till ekvationer för effekt, multiplikationsfaktor och bränsletemperatur i dokumentationen. |
+| 19 nov 2026 | [`fa67c9d`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/fa67c9d9dc75c38967a58db180152c7aebb3259d) | Lade till en beräkning av bränsletemperaturens förändring som inkluderar värmeförlust. |
+| 19 nov 2026 | [`998e77b`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/998e77b8a31cdd911265bc7d555102f440986073) | Implementerade en tidsberoende simulering av effekt och temperatur med `solve_ivp`. |
+| 19 nov 2026 | [`df37060`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/df37060a3256b0ac78075ece4d4b86e0480eddde) | Lade till utskrift av maximal effekt och temperaturförändring samt temperaturens minimum och maximum. |
+| 19 nov 2026 | [`e81d1cb`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/e81d1cbf27f7ed49474452220b17b4ea76f9b999) | Uppdaterade beroendefilen med NumPy, Matplotlib och SciPy. |
+| 19 nov 2026 | [`9d4c015`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/9d4c01524803333961071e990056ba7c3bb90a03) | Rensade och strukturerade om `task_1.py`, bland annat genom att samla körningen bakom en `__main__`-kontroll. |
+| 19 nov 2026 | [`6b4abd2`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/6b4abd2c8c306f574983aac942313e3898967cb3) | Justerade `main.py` så att den kör en nominell simulering, skriver ut resultat och visar diagram. |
+| 20 nov 2026 | [`202de47`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/202de47e9a9bb49832ce43b38d0c882b74fc8c31) | Påbörjade funktioner för känslighetsanalys och beräkning av maximal effekt och temperaturökning. |
+| 20 nov 2026 | [`9e7ea94`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/9e7ea94804ba4666213a57ce14ac0e132176eb93) | Skapade `scr/task2.py`, till en början tom, som grund för uppgift 2. |
+| 20 nov 2026 | [`649ff76`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/649ff764b0872616f68ed5079e93b16438013307) | Lade till ett första utkast till Monte Carlo-kod med parameterurval och percentilband. |
+| 20 nov 2026 | [`971d3f5`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/971d3f5531202ac242d8f4ff3600c6474b8977d4) | Commit-meddelandet beskriver Monte Carlo-simulering, men GitHub visar inga ändrade filer för just denna commit. |
+| 21 nov 2026 | [`72876cf`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/72876cfa3e3da77804185e90d38a0cc8aa2a713e) | Lade till en mer komplett reaktormodell, känslighetsanalys och Monte Carlo-analys med sammanfattande statistik och diagram. README uppdaterades också med körinstruktioner. |
+| 21 nov 2026 | [`a51a201`](https://github.com/danielingemarsson04-swe/Nuclear-Power-Assignment-2/commit/a51a20136c2ae81ee3c127f4212509f07ed79eab) | Lade till `doc/improvement.md` med förbättringsförslag, analysmål och rekommenderad projektstruktur. |
